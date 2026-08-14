@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes">
+<title>Fiocruz - Painel de Gestão Financeira</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="dashboard-container">
+<div class="header"><div class="title-section"><p class="eyebrow">Fiocruz Brasília</p><h1>Painel de Controle Financeiro</h1><p>Execução de Gastos DI · 2026</p></div></div>
+<div class="filters-card"><div class="filters-grid"><div class="filter-group"><label>Projeto</label><select id="filter-projeto"><option value="">Todos</option></select></div><div class="filter-group"><label>Modalidade</label><select id="filter-rubrica"><option value="">Todas</option></select></div><div class="filter-group"><label>Área demandante</label><select id="filter-area"><option value="">Todas</option></select></div><div class="filter-group"><label>Favorecido</label><select id="filter-favorecido"><option value="">Todos</option></select></div><div class="filter-group"><label>Data inicial</label><input type="date" id="data-inicio"></div><div class="filter-group"><label>Data final</label><input type="date" id="data-fim"></div><div class="filter-group"><button id="aplicar-filtros" class="btn-filter"><i class="fas fa-filter"></i> Aplicar</button><button id="reset-filtros" class="btn-filter btn-reset"><i class="fas fa-undo-alt"></i> Limpar</button></div></div></div>
+<div class="kpi-grid" id="kpiContainer"></div>
+<div class="charts-row"><div class="chart-card"><h3>Ranking de projetos <span>Concentração de recursos executados · DI</span></h3><canvas id="rankingAllProjectsChart"></canvas></div><div class="chart-card"><h3>Utilização por tipo de gasto</h3><canvas id="rubricChart"></canvas></div></div>
+<div class="charts-row"><div class="chart-card chart-card-wide"><div class="chart-heading"><h3>Gastos por área demandante <span>Composição por modalidade de despesa</span></h3><button type="button" id="open-area-modal" class="btn-secondary"><i class="fas fa-table"></i> Ver mais</button></div><canvas id="areaRubricChart"></canvas></div></div>
+<div class="section-title">Tabela de Gastos DI 2026</div><div class="toolbar"><button id="export-csv"><i class="fas fa-download"></i> Exportar CSV</button></div><div id="gastos-table"></div>
+<div class="ranking-container"><div class="ranking-heading"><h3>Projetos com maior saldo DI disponível <span>Caixa Geral Fiotec · 24/04/2026</span></h3><button type="button" id="open-projects-modal" class="btn-secondary"><i class="fas fa-list"></i> Ver mais</button></div><div class="ranking-list" id="rankingSaldoList"></div></div>
+<div class="projeto-detalhes"><h3><i class="fas fa-info-circle"></i> Detalhes do Projeto</h3><div class="filtros-detalhes"><div class="filtro-detalhe"><label>Selecione o projeto</label><select id="projetoDetalhesSelect"><option value="">-- Selecione um projeto --</option></select></div><div class="filtro-detalhe"><label>Número do instrumento</label><select id="instrumentoDetalhesSelect"><option value="">-- Selecione um número --</option></select></div></div><div id="projetoInfoContainer" style="display:none"><div class="info-grid" id="projetoInfoGrid"></div></div></div>
+<footer>Dashboard atualizado com os dados oficiais da Fiocruz. Filtros dinâmicos afetam todos os gráficos e indicadores.</footer>
+</div>
+
+<div class="modal-backdrop" id="projects-modal" aria-hidden="true">
+<section class="projects-modal" role="dialog" aria-modal="true" aria-labelledby="projects-modal-title">
+<header class="modal-header"><div><p class="modal-eyebrow">Visão consolidada</p><h2 id="projects-modal-title">Todos os projetos</h2><p>Valores financeiros e período de vigência</p></div><button type="button" id="close-projects-modal" class="modal-close" aria-label="Fechar"><i class="fas fa-times"></i></button></header>
+<div class="modal-tools"><label class="modal-search"><i class="fas fa-search"></i><input type="search" id="projects-search" placeholder="Buscar por projeto, nome ou coordenador" autocomplete="off"></label><span id="projects-count"></span></div>
+<div class="projects-table-wrap"><table class="projects-table"><thead><tr><th>Projeto</th><th>Nome</th><th>Valor total</th><th>Saldo DI</th><th>Saldo geral</th><th>Vigência</th></tr></thead><tbody id="projects-table-body"></tbody></table></div>
+</section>
+</div>
+
+<div class="modal-backdrop" id="area-modal" aria-hidden="true">
+<section class="projects-modal" role="dialog" aria-modal="true" aria-labelledby="area-modal-title">
+<header class="modal-header"><div><p class="modal-eyebrow">Detalhamento financeiro</p><h2 id="area-modal-title">Gastos por área demandante</h2><p>Composição completa por modalidade de despesa</p></div><button type="button" id="close-area-modal" class="modal-close" aria-label="Fechar"><i class="fas fa-times"></i></button></header>
+<div class="modal-tools"><label class="modal-search"><i class="fas fa-search"></i><input type="search" id="area-search" placeholder="Buscar área demandante" autocomplete="off"></label><span id="area-count"></span></div>
+<div class="projects-table-wrap"><table class="projects-table area-detail-table"><thead id="area-detail-head"></thead><tbody id="area-detail-body"></tbody><tfoot id="area-detail-foot"></tfoot></table></div>
+</section>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
